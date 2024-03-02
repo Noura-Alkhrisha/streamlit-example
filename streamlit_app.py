@@ -1,40 +1,64 @@
-import altair as alt
-import numpy as np
-import pandas as pd
+# Install necessary libraries
+!pip install streamlit pyngrok pycaret
+
+# Set the authtoken for ngrok
+!ngrok authtoken 2d7AMT8kfUEQvnYoQ2poJrut9uD_6mMEDjgwvyFxQHXKfJRmy
+
+
+# Write your Streamlit app code in a file named app.py
 import streamlit as st
+import pandas as pd
+from pycaret.classification import *
 
-"""
-# Welcome to Streamlit!
+# Function to load data
+def load_data(file_path):
+    return pd.read_csv(file_path)
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:.
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+# Function to perform exploratory data analysis
+def perform_eda(data):
+    # Conduct exploratory data analysis
+    pass
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+# Function to train machine learning model
+def train_model(data, target_variable, model_type='auto'):
+    setup(data, target=target_variable, silent=True)
+    best_model = compare_models()
+    return best_model
 
-num_points = st.slider("Number of points in spiral", 1, 10000, 1100)
-num_turns = st.slider("Number of turns in spiral", 1, 300, 31)
+def main():
+    st.title('Machine Learning Web App')
 
-indices = np.linspace(0, 1, num_points)
-theta = 2 * np.pi * num_turns * indices
-radius = indices
+    # File upload
+    uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 
-x = radius * np.cos(theta)
-y = radius * np.sin(theta)
+    if uploaded_file:
+        data = load_data(uploaded_file)
+        st.write(data.head())
 
-df = pd.DataFrame({
-    "x": x,
-    "y": y,
-    "idx": indices,
-    "rand": np.random.randn(num_points),
-})
+        # EDA
+        perform_eda(data)
 
-st.altair_chart(alt.Chart(df, height=700, width=700)
-    .mark_point(filled=True)
-    .encode(
-        x=alt.X("x", axis=None),
-        y=alt.Y("y", axis=None),
-        color=alt.Color("idx", legend=None, scale=alt.Scale()),
-        size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
-    ))
+        # Target variable selection
+        target_variable = st.selectbox('Select Target Variable', data.columns)
+
+        # Model training
+        if st.button('Train Model'):
+            best_model = train_model(data, target_variable)
+            st.write('Best Model:', best_model)
+
+if __name__ == '__main__':
+    main()
+
+# Run ngrok to create a tunnel
+from pyngrok import ngrok
+ngrok_tunnel = ngrok.connect(8501)
+
+# Get the public URL of the Streamlit app
+public_url = ngrok_tunnel.public_url
+print("Streamlit app can be accessed at:", public_url)
+
+# Start the Streamlit app
+!streamlit run --server.port 8501 app.py
+
+# Close the ngrok tunnel
+ngrok_tunnel.close()
